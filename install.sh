@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/zsh
 # ============================================================================
 # macOS Permissions Setup - Installer
 # ============================================================================
 # Install with:
-#   curl -fsSL https://raw.githubusercontent.com/nicolasmertens/macos-permissions-setup/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/nicolasmertens/macos-permissions-setup/main/install.sh | zsh
 #
 # Or with wget:
 #   wget -qO- https://raw.githubusercontent.com/nicolasmertens/macos-permissions-setup/main/install.sh | bash
