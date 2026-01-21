@@ -329,6 +329,44 @@ check_screen_recording() {
     [[ ! "$result" == *"cannot"* ]] && [[ ! "$result" == *"denied"* ]]
 }
 
+# Find app path and optionally reveal in Finder
+get_app_path() {
+    local app_name="$1"
+    local locations=(
+        "/System/Applications/Utilities/${app_name}.app"
+        "/System/Applications/${app_name}.app"
+        "/Applications/${app_name}.app"
+        "$HOME/Applications/${app_name}.app"
+    )
+
+    for loc in "${locations[@]}"; do
+        if [[ -d "$loc" ]]; then
+            echo "$loc"
+            return 0
+        fi
+    done
+
+    # Try mdfind as fallback
+    local found=$(mdfind "kMDItemKind == 'Application' && kMDItemDisplayName == '$app_name'" 2>/dev/null | head -1)
+    if [[ -n "$found" ]]; then
+        echo "$found"
+        return 0
+    fi
+
+    return 1
+}
+
+reveal_app_in_finder() {
+    local app_name="$1"
+    local app_path=$(get_app_path "$app_name")
+
+    if [[ -n "$app_path" ]]; then
+        open -R "$app_path"
+        return 0
+    fi
+    return 1
+}
+
 # ============================================================================
 # PERMISSION TRIGGERS
 # ============================================================================
@@ -358,8 +396,17 @@ trigger_accessibility() {
 
     open_privacy_pane "accessibility"
 
-    echo "  ${YELLOW}➜ Add ${BOLD}$app_name${NC}${YELLOW} to the list${NC}"
-    echo "  ${DIM}  Click + button → Select the app → Toggle ON${NC}"
+    # Try to reveal app in Finder for easy drag-and-drop
+    local app_path=$(get_app_path "$app_name")
+    if [[ -n "$app_path" ]]; then
+        sleep 0.5
+        open -R "$app_path"
+        echo "  ${YELLOW}➜ Drag ${BOLD}$app_name${NC}${YELLOW} from Finder into the list${NC}"
+        echo "  ${DIM}  Or: Click + → Navigate to: $app_path${NC}"
+    else
+        echo "  ${YELLOW}➜ Add ${BOLD}$app_name${NC}${YELLOW} to the list${NC}"
+        echo "  ${DIM}  Click + button → Select the app → Toggle ON${NC}"
+    fi
 }
 
 trigger_screen_recording() {
@@ -375,7 +422,16 @@ trigger_screen_recording() {
 
     open_privacy_pane "screen_recording"
 
-    echo "  ${YELLOW}➜ Add ${BOLD}$app_name${NC}${YELLOW} to the list${NC}"
+    # Try to reveal app in Finder for easy drag-and-drop
+    local app_path=$(get_app_path "$app_name")
+    if [[ -n "$app_path" ]]; then
+        sleep 0.5
+        open -R "$app_path"
+        echo "  ${YELLOW}➜ Drag ${BOLD}$app_name${NC}${YELLOW} from Finder into the list${NC}"
+        echo "  ${DIM}  Or: Click + → Navigate to: $app_path${NC}"
+    else
+        echo "  ${YELLOW}➜ Add ${BOLD}$app_name${NC}${YELLOW} to the list${NC}"
+    fi
 }
 
 trigger_full_disk_access() {
@@ -392,7 +448,16 @@ trigger_full_disk_access() {
 
     open_privacy_pane "full_disk"
 
-    echo "  ${YELLOW}➜ Add ${BOLD}$app_name${NC}${YELLOW} to the list${NC}"
+    # Try to reveal app in Finder for easy drag-and-drop
+    local app_path=$(get_app_path "$app_name")
+    if [[ -n "$app_path" ]]; then
+        sleep 0.5
+        open -R "$app_path"
+        echo "  ${YELLOW}➜ Drag ${BOLD}$app_name${NC}${YELLOW} from Finder into the list${NC}"
+        echo "  ${DIM}  Or: Click + → Navigate to: $app_path${NC}"
+    else
+        echo "  ${YELLOW}➜ Add ${BOLD}$app_name${NC}${YELLOW} to the list${NC}"
+    fi
     return 1
 }
 
