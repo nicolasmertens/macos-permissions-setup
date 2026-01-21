@@ -186,7 +186,7 @@ print_step() {
 wait_for_enter() {
     echo ""
     echo "${DIM}Press Enter to continue...${NC}"
-    read -r
+    read -r < /dev/tty
 }
 
 wait_for_permission() {
@@ -198,7 +198,7 @@ wait_for_permission() {
     echo "  ${DIM}Click 'Allow' in the popup or add in System Settings${NC}"
     echo ""
     echo "  ${GREEN}[Enter]${NC} Done  ${YELLOW}[s]${NC} Skip  ${RED}[q]${NC} Quit setup"
-    read -r response
+    read -r response < /dev/tty
 
     case "$response" in
         s|S)
@@ -590,7 +590,7 @@ show_tool_selection() {
     echo "${DIM}Legend: ${GREEN}●${NC} installed  ${DIM}○ not found${NC}"
     echo ""
     echo -n "Your choice: "
-    read -r selection
+    read -r selection < /dev/tty
 
     case "$selection" in
         x|X)
@@ -612,7 +612,7 @@ show_tool_selection() {
         c|C)
             echo ""
             echo "Enter tool numbers separated by spaces (e.g., '1 5 12'):"
-            read -r numbers
+            read -r numbers < /dev/tty
             for num in ${=numbers}; do
                 if [[ -n "${INDEX_TO_TOOL[$num]}" ]]; then
                     SELECTED_TOOLS+=("${INDEX_TO_TOOL[$num]}")
