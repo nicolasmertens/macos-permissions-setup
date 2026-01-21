@@ -185,8 +185,9 @@ print_step() {
 
 wait_for_enter() {
     echo ""
-    echo "${DIM}Press Enter to continue...${NC}"
-    read -r < /dev/tty
+    echo "${DIM}Press any key to continue...${NC}"
+    read -k 1 < /dev/tty
+    echo ""
 }
 
 wait_for_permission() {
@@ -198,7 +199,8 @@ wait_for_permission() {
     echo "  ${DIM}Click 'Allow' in the popup or add in System Settings${NC}"
     echo ""
     echo "  ${GREEN}[Enter]${NC} Done  ${YELLOW}[s]${NC} Skip  ${RED}[q]${NC} Quit setup"
-    read -r response < /dev/tty
+    read -k 1 response < /dev/tty
+    echo ""  # New line after single keypress
 
     case "$response" in
         s|S)
@@ -212,7 +214,8 @@ wait_for_permission() {
             show_summary
             exit 0
             ;;
-        *)
+        $'\n'|$'\r'|*)
+            # Enter key or any other key = Done
             TRIGGERED_PERMISSIONS+=("$app_name: $permission_name")
             log_success "Granted: $app_name - $permission_name"
             return 0
