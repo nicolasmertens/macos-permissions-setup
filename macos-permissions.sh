@@ -307,6 +307,29 @@ detect_installed_tools() {
 }
 
 # ============================================================================
+# PERMISSION CHECKS (detect if already granted)
+# ============================================================================
+
+check_full_disk_access() {
+    # Try to read the TCC database - only accessible with FDA
+    test -r "/Library/Application Support/com.apple.TCC/TCC.db" 2>/dev/null
+}
+
+check_automation_permission() {
+    local target_app="$1"
+    # Try to get app name - if it works without popup, permission is granted
+    osascript -e "tell application \"$target_app\" to return name" &>/dev/null
+}
+
+check_screen_recording() {
+    # This is tricky to check from shell - we'll use a heuristic
+    # Check if screencapture works without the "no permission" error
+    local result
+    result=$(screencapture -x -t png /dev/null 2>&1)
+    [[ ! "$result" == *"cannot"* ]] && [[ ! "$result" == *"denied"* ]]
+}
+
+# ============================================================================
 # PERMISSION TRIGGERS
 # ============================================================================
 
@@ -362,9 +385,15 @@ trigger_full_disk_access() {
     echo "  ${DIM}Required for: reading/writing files anywhere${NC}"
     echo ""
 
+    if check_full_disk_access; then
+        echo "  ${GREEN}✓ Already granted!${NC}"
+        return 0
+    fi
+
     open_privacy_pane "full_disk"
 
     echo "  ${YELLOW}➜ Add ${BOLD}$app_name${NC}${YELLOW} to the list${NC}"
+    return 1
 }
 
 trigger_automation() {
@@ -375,6 +404,12 @@ trigger_automation() {
     echo "  ${DIM}Allowing ${BOLD}$source_app${NC}${DIM} to control ${BOLD}$target_app${NC}"
     echo ""
 
+    # Check if already granted
+    if check_automation_permission "$target_app"; then
+        echo "  ${GREEN}✓ Already granted!${NC}"
+        return 0
+    fi
+
     # Trigger the permission popup
     osascript -e "tell application \"$target_app\" to activate" 2>/dev/null &
     local pid=$!
@@ -382,6 +417,8 @@ trigger_automation() {
     kill $pid 2>/dev/null || true
 
     echo "  ${YELLOW}➜ Click 'OK' or 'Allow' on the popup${NC}"
+    echo "  ${DIM}  (If no popup appeared, it may already be granted)${NC}"
+    return 1
 }
 
 trigger_input_monitoring() {
@@ -473,18 +510,30 @@ setup_tool() {
                 wait_for_permission "Screen Recording" "$tool_name"
                 ;;
             "Full Disk Access")
-                trigger_full_disk_access "$tool_name"
-                wait_for_permission "Full Disk Access" "$tool_name"
+                if ! trigger_full_disk_access "$tool_name"; then
+                    wait_for_permission "Full Disk Access" "$tool_name"
+                else
+                    TRIGGERED_PERMISSIONS+=("$tool_name: Full Disk Access (already granted)")
+                    sleep 1
+                fi
                 ;;
             Automation*|"Automation (per-app)")
                 if [[ "$tool_key" == "osascript" || "$tool_key" == "terminal" || "$tool_key" == "script_editor" ]]; then
                     for target in "System Events" "Finder" "Safari"; do
-                        trigger_automation "$tool_name" "$target"
-                        wait_for_permission "Automation ($target)" "$tool_name"
+                        if ! trigger_automation "$tool_name" "$target"; then
+                            wait_for_permission "Automation ($target)" "$tool_name"
+                        else
+                            TRIGGERED_PERMISSIONS+=("$tool_name: Automation ($target) (already granted)")
+                            sleep 1
+                        fi
                     done
                 else
-                    trigger_automation "$tool_name" "System Events"
-                    wait_for_permission "Automation" "$tool_name"
+                    if ! trigger_automation "$tool_name" "System Events"; then
+                        wait_for_permission "Automation" "$tool_name"
+                    else
+                        TRIGGERED_PERMISSIONS+=("$tool_name: Automation (already granted)")
+                        sleep 1
+                    fi
                 fi
                 ;;
             "Input Monitoring")
